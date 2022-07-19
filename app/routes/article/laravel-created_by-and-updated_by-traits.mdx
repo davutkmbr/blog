@@ -1,0 +1,64 @@
+---
+meta:
+  title: Automatically Set Created By & Updated By in Laravel
+---
+
+# {attributes.meta.title}
+
+You may want to record who created and updated your data in Laravel. When you try to do this manually, you will find that you are duplicating code in many places and it will get boring after a point. So is it possible for us to automate this? Yeah!
+
+I wrote separate traits for created_by and updated_by here. You can combine them if you want.
+
+```php
+<?php
+
+namespace App\Traits;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+trait HasCreatedBy
+{
+    protected static function bootHasCreatedBy()
+    {
+        self::creating(function (Model $model) {
+            if (is_null($model->created_by) && auth()->check()) {
+                $model->created_by = auth()->id();
+            }
+        });
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+}
+```
+
+```php
+<?php
+
+namespace App\Traits;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+trait HasUpdatedBy
+{
+    protected static function bootHasUpdatedBy()
+    {
+        self::updating(function (Model $model) {
+            if (is_null($model->updated_by) && auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+        });
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+}
+```

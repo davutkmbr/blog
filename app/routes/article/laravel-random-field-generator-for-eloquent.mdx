@@ -1,0 +1,83 @@
+---
+meta:
+  title: Laravel Random Field Generator for Eloquent
+---
+
+# {attributes.meta.title}
+
+With the trait I shared below, you can uniquely save the order number, uuid or any random text to the database.
+
+```php
+<?php
+
+namespace App\Traits;
+
+use Illuminate\Database\Eloquent\Model;
+
+trait HasRandomFields
+{
+    public static function bootHasRandomFields()
+    {
+        static::creating(function (Model $model) {
+            $model->setRandomFields();
+        });
+    }
+
+    public function setRandomFields(): void
+    {
+        $fields = $this->randomFields();
+
+        foreach ($fields as $field => $callback) {
+            if (is_null($this->{$field})) {
+                $this->{$field} = $this->makeUnique($field, $callback);
+            }
+        }
+    }
+
+    public function makeUnique($field, $callback): string
+    {
+        $value = $callback();
+
+        while ($this->where($field, $value)->exists()) {
+            $value = $callback();
+        }
+
+        return $value;
+    }
+
+    public function randomFields(): array
+    {
+        return [];
+    }
+}
+```
+
+Example usage:
+
+```php
+<?php
+
+namespace App\Models;
+
+use App\Eloquent\Traits\HasRandomFields;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+
+class CarReservation extends Model
+{
+    use HasFactory, HasRandomFields;
+
+    protected $fillable = [
+        // ...
+    ];
+
+    protected function randomFields(): array
+    {
+        return [
+            'number' => fn() => rand(111111, 999999),
+            'reservation_token' => fn() => Str::orderedUuid(),
+        ];
+    }
+}
+```

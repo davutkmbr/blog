@@ -1,0 +1,119 @@
+---
+meta:
+  title: Laravel Localization Example
+---
+
+# {attributes.meta.title}
+
+Hello, let's talk about how to add multi-language feature to your Laravel project without using any packages.
+
+First of all, let's put our Routes in the web.php file into a group.
+
+```php
+Route::group(['prefix' => '{locale?}', 'middleware' => 'localize'], function () {
+    // Routes...
+});
+```
+
+Above, we used a middleware called localize for Route::group(). Let's create this middleware file right away.
+
+```bash
+php artisan make:middleware LocalizeMiddleware
+```
+
+```php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
+
+class LocalizeMiddleware
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
+    public function handle(Request $request, Closure $next)
+    {
+        if (!in_array($request->locale, config('app.supported_locales'))) {
+            $base = url()->to('');
+            $path = str_replace($base, '', $request->fullUrl());
+
+            return redirect()->to($base . '/' . config('app.locale') . $path);
+        }
+
+        app()->setLocale($request->locale);
+
+        URL::defaults(['locale' => $request->locale]);
+
+        return $next($request);
+    }
+}
+```
+
+Paste the following code inside the config/app.php file as we are calling the supported languages with the config('app.supported_locales') code.
+
+```php
+/*
+ |--------------------------------------------------------------------------
+ | Supported Locales of Application
+ |--------------------------------------------------------------------------
+*/
+
+'supported_locales' => [
+    'tr',
+    'en',
+    'ar',
+],
+```
+
+Define the name 'localize' in kernel.php.
+
+```php
+/**
+ * The application's route middleware.
+ *
+ * These middleware may be assigned to groups or used individually.
+ *
+ * @var array
+ */
+protected $routeMiddleware = [
+    // ... //
+    'localize' => \App\Http\Middleware\LocalizeMiddleware::class,
+];
+```
+
+**Important!**
+You have to add the $locale parameter to the methods of the routes with the 'localize' middleware.
+
+For example, let's have a file named PostController.
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\View\View;
+
+class PostController extends Controller
+{
+    public function index(): View
+    {
+        //
+    }
+
+    // In the show() method, I have to use the string $locale before the Post $post parameter, otherwise it will throw an error.
+     // All methods with the 'localize' middleware should be used this way.
+    public function show(string $locale, Post $post): View
+    {
+        return view('posts.show', compact('post'));
+    }
+}
+```
