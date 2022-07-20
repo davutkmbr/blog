@@ -12,8 +12,15 @@ import Container from "~/components/Container";
 import type { Article as ArticleModel } from "~/models/article";
 import strapi from "~/utils/strapi.server";
 import { localeDate } from "~/utils/date";
+import cache from "~/cache.server";
 
 export const loader: LoaderFunction = async ({ params }) => {
+  const cachedArticle = await cache.get(`article-${params.slug}`);
+
+  if (cachedArticle) {
+    return json({ article: cachedArticle });
+  }
+
   const articles = await strapi(
     `articles?filters[slug][$eq]=${params.slug}&populate=tags`
   );
@@ -37,6 +44,8 @@ export const loader: LoaderFunction = async ({ params }) => {
     .process(marked(article.attributes.content));
 
   article.attributes.contentHTML = String(markdown);
+
+  cache.set(`article-${params.slug}`, article);
 
   return json({ article });
 };

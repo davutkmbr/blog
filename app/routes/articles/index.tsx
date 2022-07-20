@@ -1,7 +1,9 @@
 import type { LoaderFunction, MetaFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import Container from "~/components/Container";
 import type { Article } from "~/models/article";
+import cache from "~/cache.server";
 import { localeDate } from "~/utils/date";
 import strapi from "~/utils/strapi.server";
 
@@ -10,9 +12,17 @@ export const meta: MetaFunction = () => ({
 });
 
 export const loader: LoaderFunction = async () => {
+  const cachedArticles = await cache.get("articles");
+
+  if (cachedArticles) {
+    return json({ articles: cachedArticles });
+  }
+
   const articles: { data: Article[] } = await strapi(
     "articles?sort[updatedAt]=desc&populate=tags"
   );
+
+  cache.set("articles", articles.data);
 
   return { articles: articles.data };
 };
