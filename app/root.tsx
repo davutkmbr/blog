@@ -7,7 +7,7 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
-import styles from "./app.css";
+import styles from "../public/app.css";
 import Header from "./components/Header";
 
 export const meta: MetaFunction = () => ({
