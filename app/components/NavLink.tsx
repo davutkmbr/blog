@@ -11,6 +11,7 @@ export default function NavLink({ children, to }: Props) {
   return (
     <Link
       to={to}
+      prefetch="intent"
       className={({ isActive }) =>
         classNames({
           "px-5 py-2": true,
